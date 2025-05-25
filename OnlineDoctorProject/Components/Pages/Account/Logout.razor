@@ -1,0 +1,85 @@
+﻿@page "/logout"
+@using OnlineDoctorProject.Components.Services
+@using Microsoft.AspNetCore.Authentication
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@inject NavigationManager navigationManager
+@inject AuthenticationStateProvider authenticationStateProvider;
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="logout-section px-4 py-12">
+    <MudPaper Elevation="3" Class="logout-box mx-auto p-6 text-center">
+        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" Class="mb-2" />
+        <MudText Typo="Typo.h5" Class="logout-heading mb-1">Успешно излязохте от системата</MudText>
+        <MudText Typo="Typo.body2" Class="logout-subtext mb-3">Благодарим ви, че използвахте платформата!</MudText>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true">@errorMessage</MudAlert>
+        }
+
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => navigationManager.NavigateTo("/"))">
+            Обратно към началната страница
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .logout-section {
+        background-color: #f9fafb;
+        border-radius: 16px;
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .logout-box {
+        background: white;
+        border-radius: 16px;
+        max-width: 450px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+
+    .logout-heading {
+        font-weight: 700;
+        color: #059669;
+    }
+
+    .logout-subtext {
+        color: #6b7280;
+    }
+
+    @@media (max-width: 768px) {
+        .logout-heading {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+
+@code {
+    private ClaimsPrincipal userClaims;
+    private AuthenticationState authenticationState;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+            userClaims = authenticationState.User;
+            if (userClaims is not null && userClaims.Identity.IsAuthenticated)
+            {
+                var customAuthenticationStateProvider = (CustomAuthenticationStateProvider)authenticationStateProvider;
+                await customAuthenticationStateProvider.UpdateAuthenticationState(null);
+
+                await Task.Delay(1000); // quick dramatic exit 😎
+                navigationManager.NavigateTo("/", true);
+            }
+        }
+        catch
+        {
+            errorMessage = "Вие не сте автентикирани!";
+            return;
+        }
+
+        await base.OnInitializedAsync();
+    }
+}

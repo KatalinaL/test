@@ -1,0 +1,43 @@
+﻿@page "/doctors/delete"
+@using BusinessLayer
+@using OnlineDoctorProject.Components.Services
+@inject DoctorContext doctorManager
+@inject StateContainer<Doctor> doctorContainer
+@inject NavigationManager NavigationManager
+
+<h3>Изтрий доктор</h3>
+
+@if (doctor != null)
+{
+    <p>Are you sure you want to delete @doctor.UserName?</p>
+    <button @onclick="DeleteDoctor">Да</button>
+    <button @onclick="GoBack">Не</button>
+}
+else
+{
+    <p>Докторът не е намерен.</p>
+}
+
+@code {
+
+
+
+    private Doctor doctor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        doctor = doctorContainer.Value;
+        await base.OnInitializedAsync();
+    }
+
+    private async Task DeleteDoctor()
+    {
+        await doctorManager.DeleteAsync(doctor.Id);
+        NavigationManager.NavigateTo("/doctors");
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/doctors");
+    }
+}

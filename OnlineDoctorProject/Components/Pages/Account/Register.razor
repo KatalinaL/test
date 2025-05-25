@@ -1,0 +1,133 @@
+﻿@page "/register"
+@using BusinessLayer
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity.EntityFrameworkCore
+@using MudBlazor.Services
+@using MudBlazor
+@using System.Diagnostics
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+@inject SignInManager<User> signInManager
+@inject UserManager<User> userManager
+@inject IdentityContext identityManager
+@inject NavigationManager navigationManager
+
+<EditForm Model="@Model" OnValidSubmit="@RegisterUser">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <MudContainer Class="register-container">
+        <MudPaper Elevation="3" Class="register-paper">
+            <h3>Регистрация на потребител</h3>
+
+            <MudTextField Id="fname" Label="Име" Variant="Variant.Outlined" InputType="InputType.Text" @bind-Value="Model.FirstName" />
+            <MudTextField Id="secname" Label="Презиме" Variant="Variant.Outlined" InputType="InputType.Text" @bind-Value="Model.SecondName" />
+            <MudTextField Id="lname" Label="Фамилия" Variant="Variant.Outlined" InputType="InputType.Text" @bind-Value="Model.LastName" />
+            <MudDatePicker Id="birthdate" Label="Рождена дата" MaxDate="@DateTime.Today" ShowWeekNumbers="true" DateFormat="dd.MM.yyyy" @bind-DateTime="Model.Birthdate" />
+            <MudTextField Id="username" Label="Потребителско име" Variant="Variant.Outlined" InputType="InputType.Text" @bind-Value="Model.UserName" />
+            <MudTextField Id="email" Label="Имейл" Variant="Variant.Outlined" InputType="InputType.Email" @bind-Value="Model.Email" />
+            <MudTextField Id="pass" Label="Парола" Variant="Variant.Outlined" InputType="InputType.Password" @bind-Value="password" />
+            <MudTextField Id="confirmpass" Label="Потвърдете паролата" Variant="Variant.Outlined" InputType="InputType.Password" @bind-Value="confirmpassword" />
+            <MudTextField Id="phone" Label="Телефонен номер" Variant="Variant.Outlined" InputType="InputType.Telephone" MaxLength="10" @bind-Value="Model.PhoneNumber" />
+
+            <MudSelect T="Role" Label="Роля" Variant="Variant.Outlined" @bind-Value="Model.Role" Required="true">
+                <MudSelectItem Disabled="true" Value="@Role.Administrator">Изберете роля</MudSelectItem>
+
+                @foreach (var role in Enum.GetValues(typeof(Role)).Cast<Role>())
+                {
+                    if (role == Role.Doctor || role == Role.Patient)
+                    {
+                        <MudSelectItem Value="@role">
+                            @GetDisplayName(role)
+                        </MudSelectItem>
+                    }
+                }
+            </MudSelect>
+
+            @if (Model.Role == Role.Doctor)
+            {
+                <MudSelect T="Specialty" Label="Специалност" Variant="Variant.Outlined"
+                           @bind-Value="Model.DoctorSpecialty" Required="true">
+                    @foreach (Specialty specialty in Enum.GetValues(typeof(Specialty)))
+                    {
+                        if (specialty != Specialty.Празно)
+                        {
+                            <MudSelectItem Value="@specialty">@specialty.ToString().Replace("_", " ")</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Elevation="0">@errorMessage</MudAlert>
+            }
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" FullWidth="true">Регистрация</MudButton>
+        </MudPaper>
+    </MudContainer>
+</EditForm>
+
+@code {
+    private User Model = new();
+    private string errorMessage = "";
+    private string password, confirmpassword;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+    }
+
+    private async Task RegisterUser()
+    {
+        try
+        {
+            Console.WriteLine("RegisterUser метод се обажда.");
+
+            if (string.IsNullOrWhiteSpace(Model.FirstName) ||
+                string.IsNullOrWhiteSpace(Model.SecondName) ||
+                string.IsNullOrWhiteSpace(Model.LastName) ||
+                string.IsNullOrWhiteSpace(Model.UserName) ||
+                string.IsNullOrWhiteSpace(Model.Email) ||
+                string.IsNullOrWhiteSpace(password) ||
+                string.IsNullOrWhiteSpace(confirmpassword) ||
+                string.IsNullOrWhiteSpace(Model.PhoneNumber))
+            {
+                errorMessage = "Моля попълнете всички нужни полета.";
+                return;
+            }
+
+            if (password != confirmpassword)
+            {
+                errorMessage = "Паролите не съвпадат.";
+                return;
+            }
+
+            if (Model.Role == Role.Doctor && Model.DoctorSpecialty == Specialty.Празно)
+            {
+                errorMessage = "Моля изберете специалност.";
+                return;
+            }
+
+            Model.PasswordHash = userManager.PasswordHasher.HashPassword(Model, password);
+            await identityManager.CreateUserAsync(Model);
+            await identityManager.UpdateAsync(Model);
+
+            navigationManager.NavigateTo("/", false);
+        }
+        catch
+        {
+            errorMessage = "Грешка. Опитайте отново.";
+            return;
+        }
+
+
+    }
+    private string GetDisplayName(Enum value)
+    {
+        var field = value.GetType().GetField(value.ToString());
+        var attribute = field?.GetCustomAttributes(typeof(DisplayAttribute), false)
+                              .FirstOrDefault() as DisplayAttribute;
+        return attribute?.Name ?? value.ToString();
+    }
+}

@@ -1,0 +1,74 @@
+﻿@page "/users"
+@using BusinessLayer;
+@using OnlineDoctorProject.Components.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IdentityContext identityManager;
+@inject NavigationManager navigationManager;
+@inject StateContainer<User> userContainer;
+
+<h1>Users</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Username
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model == null)
+        {
+            <tr><td>Loading...</td></tr>
+        }
+        else
+        {
+            @foreach (User item in Model)
+            {
+                <tr>
+                    <td>
+                        @item.UserName
+                    </td>
+                    <td>
+                        <a href="users/edit" @onclick="(() => SetUser(item))">Edit</a> |
+                        <a href="users/delete" @onclick="(() => SetUser(item))">Delete</a>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    ICollection<User> Model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    async Task LoadBooks()
+    {
+        Model = await identityManager.ReadAllAsync(true);
+    }
+
+    void SetUser(User user)
+    {
+        userContainer.SetValue(user);
+    }
+
+    async Task OnDelete(string id)
+    {
+        try
+        {
+            await identityManager.DeleteAsync(id);
+            await LoadBooks();
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+}

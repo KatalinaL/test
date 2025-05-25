@@ -1,0 +1,120 @@
+﻿@page "/login"
+@using BusinessLayer;
+@using OnlineDoctorProject.Components.Services
+@using OnlineDoctorProject.DataLayer
+@using OnlineDoctorProject.ViewModels
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Identity;
+@using System.Security.Claims
+@inject NavigationManager navigationManager
+@inject UserManager<User> userManager
+@inject AuthenticationStateProvider authenticationStateProvider;
+@inject IdentityContext identityManager;
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="login-section px-4 py-12">
+    <MudPaper Elevation="3" Class="login-box mx-auto p-6">
+        <div class="text-center mb-6">
+            <div class="login-badge">Добре дошли</div>
+            <MudText Typo="Typo.h5" Class="login-heading mt-2 mb-1">Вход в системата</MudText>
+            <MudText Typo="Typo.body2" Class="login-subtitle">Въведете вашите данни за достъп</MudText>
+        </div>
+
+        <EditForm Model="@model" OnValidSubmit="@Authenticate">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <MudStack Spacing="2">
+                <MudTextField Label="Име" Variant="Variant.Outlined" @bind-Value="model.Username" />
+                <MudTextField Label="Парола" Variant="Variant.Outlined" InputType="InputType.Password" @bind-Value="model.Password" />
+                
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@errorMessage</MudAlert>
+                }
+
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-2">
+                    Вход
+                </MudButton>
+            </MudStack>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .login-section {
+        background-color: #f0fdfa;
+        border-radius: 16px;
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .login-box {
+        background: white;
+        border-radius: 16px;
+        max-width: 450px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+
+    .login-badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .login-heading {
+        font-weight: 700;
+        color: #0f766e;
+    }
+
+    .login-subtitle {
+        color: #4b5563;
+    }
+
+    @@media (max-width: 768px) {
+        .login-box {
+            padding: 24px;
+        }
+
+        .login-heading {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+
+@code
+{
+    private UserLoginViewModel model = new();
+    private string errorMessage = string.Empty;
+
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
+
+    private async Task Authenticate()
+    {
+        try
+        {
+            StartLogin user = await identityManager.LogInAsync2(model.Username, model.Password);
+            if (user == null)
+            {
+                errorMessage = "Потребител с това име/парола не съществува!";
+                return;
+            }
+
+            var customAuthStateProvider = (CustomAuthenticationStateProvider)authenticationStateProvider;
+            await customAuthStateProvider.UpdateAuthenticationState(user);
+
+            navigationManager.NavigateTo("/", true);
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+}

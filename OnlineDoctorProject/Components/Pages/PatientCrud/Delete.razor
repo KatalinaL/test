@@ -1,0 +1,80 @@
+﻿@page "/patients/delete/{Id}"
+@using BusinessLayer
+@using Microsoft.AspNetCore.Identity
+@using OnlineDoctorProject.DataLayer
+@inject UserManager<User> UserManager
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudPaper Class="pa-6 mx-auto mt-8" MaxWidth="400px">
+    <MudText Typo="Typo.h5" GutterBottom="true">Изтриване на пациент</MudText>
+
+    @if (patient != null)
+    {
+        <MudText>
+            Сигурни ли сте, че искате да изтриете пациента
+            <strong>@patient.FirstName @patient.LastName</strong>
+            (Потребител: <em>@patient.UserName</em>)?
+        </MudText>
+
+        <MudStack Direction="Row" Justify="Justify.SpaceBetween" Class="mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeletePatient">
+                Да, изтрий
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="GoBack">
+                Отказ
+            </MudButton>
+        </MudStack>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Elevation="0" Class="mt-4">
+            Пациентът не е намерен.
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public string Id { get; set; }
+    private User patient;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Id))
+        {
+            patient = await UserManager.FindByIdAsync(Id);
+        }
+    }
+
+    private async Task DeletePatient()
+    {
+        if (patient == null)
+        {
+            Snackbar.Add("Пациентът не е намерен.", Severity.Error);
+            return;
+        }
+
+        if (patient.Role != Role.Patient)
+        {
+            Snackbar.Add("Може да се изтриват само потребители с роля 'Patient'.", Severity.Warning);
+            return;
+        }
+
+        var result = await UserManager.DeleteAsync(patient);
+
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Пациентът е изтрит успешно.", Severity.Success);
+            NavigationManager.NavigateTo("/patients");
+        }
+        else
+        {
+            Snackbar.Add("Възникна грешка при изтриване.", Severity.Error);
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/patients");
+    }
+}

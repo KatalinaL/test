@@ -1,0 +1,208 @@
+﻿@page "/"
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="container">
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <div class="text-center">
+            <span class="badge">Добре дошли</span>
+            <h1 class="hero-heading">Твоят Online Doctor</h1>
+            <p class="hero-subtitle">
+                Доверете ни се за Вашето здраве и благополучие
+            </p>
+        </div>
+    </section>
+
+    <!-- About Preview Section -->
+    <section id="about-preview" class="about-preview">
+        <div class="about-grid">
+            <div class="about-text">
+                <span class="badge">За нас</span>
+                <h2>Посветени на висококачествената грижа</h2>
+                <p>Ние сме екип от професионалисти, посветени на висококачествената грижа за Вашето здраве и комфорт. Нашата мисия е да предоставяме съвременни медицински услуги чрез индивидуален подход.</p>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/aboutUs" EndIcon="@Icons.Material.Filled.ArrowForward">Научете повече</MudButton>
+            </div>
+            <div class="about-image">
+                <img src="images/team_specialists.jpg" alt="Нашият екип">
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="text-center">
+            <span class="badge">Услуги</span>
+            <h2>Нашите медицински услуги</h2>
+            <p>Предоставяме широк спектър от медицински услуги за цялото семейство.</p>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" Class="service-icon" />
+                <h3>Обща медицина</h3>
+                <p>Прегледи, диагностика и лечение на заболявания</p>
+            </div>
+
+            <div class="service-card">
+                <MudIcon Icon="@Icons.Material.Filled.LocalHospital" Class="service-icon" />
+                <h3>Дентална грижа</h3>
+                <p>Профилактика и лечение на зъбни проблеми</p>
+            </div>
+
+            <div class="service-card">
+                <MudIcon Icon="@Icons.Material.Filled.RemoveRedEye" Class="service-icon" />
+                <h3>Офталмология</h3>
+                <p>Грижа за зрението и очите</p>
+            </div>
+
+            <div class="service-card">
+                <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Class="service-icon" />
+                <h3>Кардиология</h3>
+                <p>Диагностика и лечение на сърдечни заболявания</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Preview Section -->
+    <section id="contact-preview" class="contact-preview">
+        <div class="text-center">
+            <span class="badge">Контакти</span>
+            <h2>Свържете се с нас</h2>
+            <p>Нашият екип е на Ваше разположение за всякакви въпроси.</p>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/aboutUs#contact" EndIcon="@Icons.Material.Filled.Call">Контакти</MudButton>
+        </div>
+    </section>
+</MudContainer>
+
+<style>
+    .container {
+        padding: 0;
+    }
+
+    section {
+        padding: 80px 0;
+    }
+
+    .hero {
+        background-color: #f0fdfa;
+        text-align: center;
+        padding: 100px 0;
+    }
+
+    .text-center {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .hero-heading {
+        font-size: 3rem;
+        color: #0f766e;
+        margin-bottom: 16px;
+        font-weight: 700;
+    }
+
+    .hero-subtitle {
+        font-size: 1.5rem;
+        color: #333;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .about-preview {
+        background: white;
+    }
+
+    .about-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        align-items: center;
+    }
+
+    .about-image img {
+        width: 100%;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .about-text h2 {
+        font-size: 2rem;
+        color: #0f766e;
+        margin-bottom: 16px;
+    }
+
+    .about-text p {
+        color: #333;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .services {
+        background-color: #f0fdfa;
+    }
+
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
+        margin-top: 40px;
+    }
+
+    .service-card {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+    }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+    .service-icon {
+        font-size: 48px;
+        color: #0f766e;
+        margin-bottom: 20px;
+    }
+
+    .service-card h3 {
+        color: #0f766e;
+        margin-bottom: 10px;
+    }
+
+    .service-card p {
+        color: #555;
+        line-height: 1.5;
+    }
+
+    .contact-preview {
+        background: white;
+    }
+
+    @@media (max-width: 768px) {
+        .about-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .hero-heading {
+            font-size: 2rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+        }
+    }
+</style>

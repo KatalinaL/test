@@ -1,0 +1,204 @@
+﻿@page "/articles/add"
+@page "/articles/add/{ArticleId}"
+
+@using BusinessLayer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using MudBlazor
+@using System.Security.Claims
+@inject NavigationManager Navigation
+@inject UserManager<User> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject MedicalDbContext DbContext
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="container">
+    <section class="article-section">
+        <MudPaper Class="pa-4 article-paper">
+            <div class="text-center">
+                <span class="badge">Статии</span>
+                <h3 class="article-heading">
+                    @if (!CanEdit && IsEditMode)
+                    {
+                        @:Прочети статия
+                    }
+                    else if (IsEditMode)
+                    {
+                        @:Редактирай статия
+                    }
+                    else
+                    {
+                        @:Добави статия
+                    }
+                </h3>
+            </div>
+
+            @if (IsLoaded)
+            {
+                <MudForm Model="ArticleModel" Class="mt-4">
+                    <MudTextField @bind-Value="ArticleModel.Title"
+                                  Label="Заглавие"
+                                  Variant="Variant.Outlined"
+                                  Disabled="@(!CanEdit)"
+                                  Class="mb-4" />
+
+                    <MudTextField @bind-Value="ArticleModel.Content"
+                                  Label="Съдържание"
+                                  Variant="Variant.Outlined"
+                                  Lines="10"
+                                  Disabled="@(!CanEdit)"
+                                  Class="mb-4" />
+
+                    @if (CanEdit)
+                    {
+                        <div class="text-center">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="SubmitArticle"
+                                       Class="mt-4"
+                                       EndIcon="@Icons.Material.Filled.Save">
+                                Запази статията
+                            </MudButton>
+                        </div>
+                    }
+                </MudForm>
+
+                @if (!string.IsNullOrEmpty(Message))
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-4">@Message</MudAlert>
+                }
+            }
+            else
+            {
+                <div class="text-center">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+        </MudPaper>
+    </section>
+</MudContainer>
+
+<style>
+    .container {
+        padding: 0;
+    }
+
+    .article-section {
+        padding: 60px 0;
+    }
+
+    .article-paper {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 40px !important;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .article-heading {
+        font-size: 2rem;
+        color: #0f766e;
+        margin-bottom: 24px;
+        font-weight: 700;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    @@media (max-width: 768px) {
+        .article-section {
+            padding: 40px 0;
+        }
+
+        .article-paper {
+            padding: 24px !important;
+        }
+
+        .article-heading {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public string? ArticleId { get; set; }
+
+    private Article ArticleModel { get; set; } = new Article();
+    private string Message { get; set; }
+    private bool IsEditMode => !string.IsNullOrEmpty(ArticleId);
+    private bool IsLoaded { get; set; } = false;
+    private bool CanEdit { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userName = user.Identity?.Name;
+
+        if (string.IsNullOrEmpty(userName))
+        {
+            Message = "Грешка: Потребителят не е логнат.";
+            return;
+        }
+
+        var currentUser = await UserManager.FindByNameAsync(userName);
+        if (currentUser == null)
+        {
+            Message = "Грешка: Не може да се намери потребителят.";
+            return;
+        }
+
+        if (IsEditMode)
+        {
+            var article = await DbContext.Articles.FindAsync(ArticleId);
+            if (article == null)
+            {
+                Message = "Грешка: Статията не е намерена.";
+                IsLoaded = true;
+                return;
+            }
+
+            ArticleModel = article;
+            CanEdit = (article.AuthorId == currentUser.Id);
+        }
+        else
+        {
+            ArticleModel.AuthorId = currentUser.Id;
+            CanEdit = currentUser.Role == Role.Doctor;
+        }
+
+        IsLoaded = true;
+    }
+
+    private async Task SubmitArticle()
+    {
+        if (!CanEdit)
+        {
+            Message = "Нямате права да редактирате тази статия.";
+            return;
+        }
+
+        if (IsEditMode)
+        {
+            DbContext.Articles.Update(ArticleModel);
+        }
+        else
+        {
+            ArticleModel.PublishedDate = DateTime.UtcNow;
+            DbContext.Articles.Add(ArticleModel);
+        }
+
+        int affected = await DbContext.SaveChangesAsync();
+        Message = affected > 0 ? "Статията е запазена успешно!" : "Възникна грешка при запис на статията.";
+    }
+}

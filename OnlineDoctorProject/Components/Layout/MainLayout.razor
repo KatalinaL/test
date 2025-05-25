@@ -1,0 +1,116 @@
+﻿@inherits LayoutComponentBase
+@using MudBlazor
+
+<MudThemeProvider Theme="MyCustomTheme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+
+    <MudAppBar Elevation="0" Color="Color.Transparent" Class="custom-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="appbar-title">Online Doctor</MudText>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="@_drawerOpen" Anchor="Anchor.Left" Variant="DrawerVariant.Temporary" Elevation="3" Class="custom-drawer">
+
+        <MudDrawerHeader Class="drawer-header">
+            <MudText Typo="Typo.h5" Align="Align.Center">Меню</MudText>
+        </MudDrawerHeader>
+
+        <MudDrawerContainer>
+            <NavMenu />
+            <AuthorizeView>
+                <Authorized>
+                    <MudNavLink Href="/logout" Match="NavLinkMatch.Prefix" Class="nav-link">
+                        Изход от профил
+                    </MudNavLink>
+                </Authorized>
+                <NotAuthorized>
+                    <MudNavLink Href="/login" Match="NavLinkMatch.Prefix" Class="nav-link">
+                        Вход в профил
+                    </MudNavLink>
+                    <MudNavLink Href="/register" Match="NavLinkMatch.Prefix" Class="nav-link">
+                        Регистрация на акаунт
+                    </MudNavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+        </MudDrawerContainer>
+
+    </MudDrawer>
+
+    <MudMainContent Class="main-content">
+        @Body
+    </MudMainContent>
+
+</MudLayout>
+
+@code {
+    bool _drawerOpen = false;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    MudTheme MyCustomTheme = new MudTheme()
+        {
+            Palette = new()
+            {
+                Primary = Colors.Teal.Default,
+                Secondary = Colors.Cyan.Lighten3,
+                //AppbarBackground = "transparent",
+                DrawerBackground = "#f0fdfa",
+                Background = Colors.Grey.Lighten5
+            }
+        };
+}
+<style>
+    .custom-appbar {
+        background-color: #f0fdfa;
+        color: #0f766e;
+        padding: 10px 20px;
+    }
+
+    .appbar-title {
+        font-weight: bold;
+        margin-left: 10px;
+        color: #0f766e;
+    }
+
+    .custom-drawer {
+        background-color: #f0fdfa;
+        padding: 20px;
+    }
+
+    .drawer-header {
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 20px;
+        border-bottom: 2px solid #0f766e;
+    }
+
+    .custom-navmenu {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .nav-link {
+        border-radius: 8px;
+        padding: 10px 20px;
+        color: #0f766e;
+        background: white;
+        transition: background-color 0.3s, transform 0.2s;
+        font-weight: 600;
+    }
+
+        .nav-link:hover {
+            background: #ccfbf1;
+            transform: translateX(5px);
+        }
+
+    .main-content {
+        background-color: #ffffff;
+    }
+</style>

@@ -1,0 +1,141 @@
+﻿@page "/problems/register"
+@using BusinessLayer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject NavigationManager Navigation
+@inject ProblemReportContext ProblemService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<User> UserManager
+
+@attribute [Authorize(Roles = "Patient")]
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="container">
+    <section class="problem-section">
+        <MudPaper Class="pa-4 problem-paper">
+            <div class="text-center">
+                <span class="badge">Сигнализиране</span>
+                <h3 class="problem-heading">Регистрирай проблем</h3>
+            </div>
+
+            <MudForm Model="Problem" Class="mt-4">
+                <MudTextField @bind-Value="Problem.Message"
+                              Label="Описание на проблема"
+                              Variant="Variant.Outlined"
+                              Lines="5"
+                              Class="mb-4"
+                              FullWidth="true" />
+
+                <div class="text-center">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SubmitProblem"
+                               EndIcon="@Icons.Material.Filled.Report"
+                               Class="mt-2">
+                        Запиши проблема
+                    </MudButton>
+                </div>
+            </MudForm>
+
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">@Message</MudAlert>
+            }
+        </MudPaper>
+    </section>
+</MudContainer>
+
+<style>
+    .container {
+        padding: 0;
+    }
+
+    .problem-section {
+        padding: 60px 0;
+        background-color: #f0fdfa;
+    }
+
+    .problem-paper {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 40px !important;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .problem-heading {
+        font-size: 2rem;
+        color: #0f766e;
+        margin-bottom: 24px;
+        font-weight: 700;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    @@media (max-width: 768px) {
+        .problem-section {
+            padding: 40px 0;
+        }
+
+        .problem-paper {
+            padding: 24px !important;
+        }
+
+        .problem-heading {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+@code {
+    private BusinessLayer.ReportProblem Problem { get; set; } = new BusinessLayer.ReportProblem();
+    private string Message { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Problem.DateReported = DateTime.UtcNow;
+    }
+
+    private async Task SubmitProblem()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userName = user.Identity.Name;
+        if (string.IsNullOrEmpty(userName))
+        {
+            Message = "Грешка: Потребителят не е логнат.";
+            return;
+        }
+
+        var currentUser = await UserManager.FindByNameAsync(userName);
+        if (currentUser == null)
+        {
+            Message = "Грешка: Не може да се намери потребителят с това потребителско име.";
+            return;
+        }
+
+        Problem.Id = Guid.NewGuid().ToString();
+        Problem.ReporterId = currentUser.Id;
+        Problem.DateReported = DateTime.UtcNow;
+
+        bool success = await ProblemService.AddProblemReportAsync(Problem);
+        Message = success ? "Проблемът е регистриран успешно!" : "Възникна грешка при регистриране на проблема.";
+
+        if (success)
+        {
+            Problem = new BusinessLayer.ReportProblem { DateReported = DateTime.UtcNow };
+        }
+    }
+}

@@ -1,0 +1,209 @@
+﻿@page "/problems/admin"
+@using BusinessLayer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject ProblemReportContext ProblemService
+@inject DoctorContext doctorService
+@inject NavigationManager Navigation
+@inject MedicalDbContext DbContext
+
+@attribute [Authorize(Roles = "Administrator")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="problems-admin-container">
+    <MudPaper Class="problems-admin-paper">
+        <MudStack Spacing="4">
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="problems-admin-title">Регистрирани проблеми</MudText>
+
+            @if (ProblemReports == null)
+            {
+                <MudLinearProgress Indeterminate="true" Color="Color.Primary" Class="loading-spinner" />
+            }
+            else if (!ProblemReports.Any())
+            {
+                <MudText Typo="Typo.body1" Align="Align.Center">Няма регистрирани проблеми.</MudText>
+            }
+            else
+            {
+                <MudTable Items="ProblemReports" Hover="true" Bordered="true" Striped="true" Class="problems-table">
+                    <HeaderContent>
+                        <MudTh>Проблем</MudTh>
+                        <MudTh>Пациент</MudTh>
+                        <MudTh>Дата</MudTh>
+                        <MudTh>Назначен доктор</MudTh>
+                        <MudTh>Действия</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Message</MudTd>
+                        <MudTd>
+                            @if (!string.IsNullOrEmpty(context.ReporterId) && ReporterNames.ContainsKey(context.ReporterId))
+                            {
+                                <span>@ReporterNames[context.ReporterId]</span>
+                            }
+                            else
+                            {
+                                <span>@context.ReporterId</span>
+                            }
+                        </MudTd>
+                        <MudTd>@context.DateReported.ToString("dd.MM.yyyy HH:mm")</MudTd>
+                        <MudTd>
+                            @if (!string.IsNullOrEmpty(context.DoctorId) && DoctorNames.ContainsKey(context.DoctorId))
+                            {
+                                <span>@DoctorNames[context.DoctorId]</span>
+                            }
+                            else
+                            {
+                                <span>Лекар не е назначен</span>
+                            }
+                        </MudTd>
+                        <MudTd>
+                            @if (string.IsNullOrEmpty(context.DoctorId))
+                            {
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => Navigation.NavigateTo($"/appointments/create/null/{context.ReporterId}/{context.Id}"))">
+                                    Назначи лекар
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Няма действия</MudText>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+<style>
+/* ====== Admin Problems Page Style ====== */
+.problems-admin-container {
+    margin-top: 3rem;
+    display: flex;
+    justify-content: center;
+}
+
+.problems-admin-paper {
+    padding: 2rem;
+    border-radius: 1.5rem;
+    background: #ffffff;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+.problems-admin-title {
+    color: #4caf50;
+    font-weight: 600;
+}
+
+.loading-spinner {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.problems-table {
+    margin-top: 2rem;
+}
+
+.mud-table {
+    border-radius: 0.75rem;
+}
+
+.mud-th {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.mud-td {
+    padding: 0.75rem;
+}
+
+.mud-button {
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.mud-button:hover {
+    background-color: #4caf50;
+    transform: scale(1.05);
+    transition: transform 0.3s ease;
+}
+
+.mud-td span, .mud-td mud-text {
+    font-size: 0.9rem;
+}
+
+.mud-td span {
+    color: #3c3c3c;
+}
+
+.mud-text {
+    font-size: 0.85rem;
+    color: #9e9e9e;
+}
+
+.mud-text-body2 {
+    color: #b0bec5;
+}
+</style>
+
+@code {
+    private List<ReportProblem> ProblemReports { get; set; } = new();
+    private List<Doctor> availableDoctors { get; set; } = new();
+    private Dictionary<string, string> selectedDoctors { get; set; } = new();
+    private Dictionary<string, string> DoctorNames { get; set; } = new();
+    private Dictionary<string, string> ReporterNames { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ProblemReports = await ProblemService.GetAllProblemReportsAsync();
+        availableDoctors = await doctorService.GetDoctorsAsync();
+
+        var doctorIds = ProblemReports
+            .Where(p => !string.IsNullOrEmpty(p.DoctorId))
+            .Select(p => p.DoctorId)
+            .Distinct()
+            .ToList();
+
+        var reporterIds = ProblemReports
+            .Where(p => !string.IsNullOrEmpty(p.ReporterId))
+            .Select(p => p.ReporterId)
+            .Distinct()
+            .ToList();
+
+        var users = await DbContext.Users
+            .Where(u => doctorIds.Contains(u.Id) || reporterIds.Contains(u.Id))
+            .ToListAsync();
+
+        foreach (var user in users)
+        {
+            var fullName = $"{user.FirstName} {user.LastName}";
+            if (doctorIds.Contains(user.Id))
+            {
+                DoctorNames[user.Id] = fullName;
+            }
+            if (reporterIds.Contains(user.Id))
+            {
+                ReporterNames[user.Id] = fullName;
+            }
+        }
+    }
+
+    private async Task AssignDoctor(string problemId)
+    {
+        if (!selectedDoctors.TryGetValue(problemId, out var selectedDoctorId) || string.IsNullOrEmpty(selectedDoctorId))
+            return;
+
+        bool success = await ProblemService.AssignDoctorAsync(problemId, selectedDoctorId);
+        if (success)
+        {
+            ProblemReports = await ProblemService.GetAllProblemReportsAsync();
+            if (selectedDoctors.ContainsKey(problemId))
+                selectedDoctors.Remove(problemId);
+            StateHasChanged();
+        }
+    }
+}

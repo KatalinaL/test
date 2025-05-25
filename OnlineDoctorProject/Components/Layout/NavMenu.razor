@@ -1,0 +1,76 @@
+﻿@using BusinessLayer;
+@using OnlineDoctorProject.DataLayer
+@using DataLayer;
+@using Microsoft.AspNetCore.Identity;
+@using MudBlazor;
+@inject UserManager<User> userManager;
+@inject AuthenticationStateProvider authenticationStateProvider;
+@inject MedicalDbContext context;
+
+<MudNavMenu Class="custom-navmenu">
+
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.House" Class="nav-link">Начало</MudNavLink>
+    <MudNavLink Href="/aboutUs" Match="NavLinkMatch.Prefix" Class="nav-link">За нас</MudNavLink>
+    <MudNavLink Href="/specialists/see" Match="NavLinkMatch.Prefix" Class="nav-link">Специалисти</MudNavLink>
+
+    <AuthorizeView Roles="Patient">
+        <Authorized>
+            <MudNavLink Href="/userIndex" Match="NavLinkMatch.Prefix" Class="nav-link">Избор на среща със специалист</MudNavLink>
+            <MudNavLink Href="/rate" Match="NavLinkMatch.Prefix" Class="nav-link">Дай оценка на специалист</MudNavLink>
+            <MudNavLink Href="/doctors/ranking" Match="NavLinkMatch.Prefix" Class="nav-link">Класация на специалисти</MudNavLink>
+            <MudNavLink Href="/articles" Match="NavLinkMatch.Prefix" Class="nav-link">Статии</MudNavLink>
+            <MudNavLink Href="/my-appointments" Match="NavLinkMatch.Prefix" Class="nav-link">Моите записани прегледи</MudNavLink>
+            <MudNavLink Href="/my-profile" Match="NavLinkMatch.Prefix" Class="nav-link">Моят профил</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Administrator">
+        <Authorized>
+            <MudNavLink Href="/patients" Match="NavLinkMatch.Prefix" Class="nav-link">Пациенти</MudNavLink>
+            <MudNavLink Href="/articles" Match="NavLinkMatch.Prefix" Class="nav-link">Статии</MudNavLink>
+            <MudNavLink Href="/problems/admin" Match="NavLinkMatch.Prefix" Class="nav-link">Регистрирани проблеми</MudNavLink>
+            <MudNavLink Href="/my-profile" Match="NavLinkMatch.Prefix" Class="nav-link">Моят профил</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="LabSpecialist">
+        <Authorized>
+            <MudNavLink Href="/patientExaminations" Match="NavLinkMatch.Prefix" Class="nav-link">Резултати от изследване</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Doctor">
+        <Authorized>
+            <MudNavLink Href="/appointments" Match="NavLinkMatch.Prefix" Class="nav-link">Срещи с пациенти</MudNavLink>
+            <MudNavLink Href="/articles" Match="NavLinkMatch.Prefix" Class="nav-link">Статии</MudNavLink>
+            <MudNavLink Href="/articles/add" Match="NavLinkMatch.Prefix" Class="nav-link">Добави статия</MudNavLink>
+            <MudNavLink Href="/my-profile" Match="NavLinkMatch.Prefix" Class="nav-link">Моят профил</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Patient">
+        <Authorized>
+            <MudNavLink Href="/problems/register" Match="NavLinkMatch.Prefix" Class="nav-link">Регистрирай проблем</MudNavLink>
+            <MudNavLink Href="/problems/my" Match="NavLinkMatch.Prefix" Class="nav-link">Моите проблеми</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+
+</MudNavMenu>
+
+@code {
+    private string doctorId;
+    AuthenticationState authState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity.IsAuthenticated)
+        {
+            User user = await userManager.FindByNameAsync(authState.User.Identity.Name);
+            if (user != null)
+            {
+                doctorId = user.UserName;
+            }
+        }
+    }
+}

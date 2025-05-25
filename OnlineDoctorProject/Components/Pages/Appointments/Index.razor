@@ -1,0 +1,166 @@
+﻿@page "/appointments"
+@using BusinessLayer
+@using OnlineDoctorProject.Components.Services
+@using OnlineDoctorProject.DataLayer
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject AppointmentContext appointmentManager
+@inject MedicalDbContext DbContext
+@inject StateContainer<Appointment> appointmentContainer
+@inject AuthenticationStateProvider authenticationStateProvider
+@inject UserManager<User> UserManager
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="appointments-container">
+    <MudPaper Elevation="3" Class="appointments-paper">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="appointments-title mb-6">
+            Лист със срещи
+        </MudText>
+
+        @if (appointments != null && appointments.Any())
+        {
+            <MudTable Items="appointments" T="Appointment" Hover="true" Dense="false"
+                      Elevation="0" Bordered="true" Striped="true" Class="appointments-table">
+                <HeaderContent>
+                    <MudTh>Причина</MudTh>
+                    <MudTh>Описание</MudTh>
+                    <MudTh>Дата</MudTh>
+                    <MudTh>Пациент</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Причина">@context.Reason.ToString()</MudTd>
+                    <MudTd DataLabel="Описание">@context.Description</MudTd>
+                    <MudTd DataLabel="Дата">@context.Date.ToString("dd.MM.yyyy")</MudTd>
+                    <MudTd DataLabel="Пациент">
+                        @if (!string.IsNullOrEmpty(context.PatientId) && patientNames.ContainsKey(context.PatientId))
+                        {
+                            @patientNames[context.PatientId]
+                        }
+                        else
+                        {
+                            <em>няма данни</em>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="appointments-alert mt-4">
+                Няма намерени срещи.
+            </MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+<style>
+    /* ====== Appointments Page Style (Local to this Razor file) ====== */
+    .appointments-container {
+        margin-top: 4rem;
+        margin-bottom: 4rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    .appointments-paper {
+        padding: 2rem;
+        border-radius: 1.5rem;
+        background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+        box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.08);
+        max-width: 1000px;
+        width: 100%;
+    }
+
+    .appointments-title {
+        color: #3f51b5;
+        font-weight: bold;
+    }
+
+    .appointments-table {
+        background-color: #ffffff;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+        .appointments-table thead {
+            background-color: #e3eafc;
+        }
+
+        .appointments-table th,
+        .appointments-table td {
+            text-align: center;
+            padding: 1rem;
+        }
+
+    .appointments-alert {
+        border: 2px dashed #90caf9;
+        background-color: #e3f2fd;
+        color: #0d47a1;
+        border-radius: 1rem;
+    }
+</style>
+
+@code {
+    private Dictionary<string, string> patientNames = new();
+    private ICollection<Appointment> appointments;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var doctorId = user.FindFirst(System.Security.Claims.ClaimTypes.SerialNumber)?.Value;
+        if (string.IsNullOrEmpty(doctorId))
+        {
+            Console.WriteLine("⚠️ Не е намерен DoctorId за логнатия потребител.");
+            return;
+        }
+
+        await LoadAppointments(doctorId);
+    }
+
+    private async Task LoadAppointments(string doctorId)
+    {
+        var allAppointments = await appointmentManager.ReadAllAsync(true, false);
+        appointments = allAppointments
+            .Where(a => a.DoctorId == doctorId)
+            .ToList();
+
+        var patientIds = appointments
+            .Where(a => !string.IsNullOrEmpty(a.PatientId))
+            .Select(a => a.PatientId)
+            .Distinct()
+            .ToList();
+
+        var patients = await DbContext.Users
+            .Where(u => patientIds.Contains(u.Id))
+            .ToListAsync();
+
+        foreach (var patient in patients)
+        {
+            patientNames[patient.Id] = $"{patient.FirstName} {patient.LastName}";
+        }
+    }
+
+    async Task LoadGroups()
+    {
+        appointments = await appointmentManager.ReadAllAsync(true, false);
+    }
+
+    void SetGroup(Appointment appointment)
+    {
+        appointmentContainer.SetValue(appointment);
+    }
+
+    async Task OnDelete(int id)
+    {
+        try
+        {
+            await appointmentManager.DeleteAsync(id);
+            await LoadGroups();
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+}

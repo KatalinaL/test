@@ -1,0 +1,49 @@
+﻿@page "/patients/edit"
+@using BusinessLayer
+@using OnlineDoctorProject.Components.Services
+@using OnlineDoctorProject.DataLayer
+@inject PatientContext patientManager
+@inject NavigationManager NavigationManager
+@inject StateContainer<Patient> patientContainer
+
+<h3>Edit Patient</h3>
+
+@if (patient != null)
+{
+    <EditForm Model="@patient" OnValidSubmit="UpdatePatient">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <label>Name:</label>
+        <InputText @bind-Value="patient.UserName" /><br />
+
+        <button type="submit">Save Changes</button>
+    </EditForm>
+}
+
+
+<button @onclick="GoBack">Cancel</button>
+
+@code {
+
+
+
+    private Patient patient;
+
+    protected override async Task OnInitializedAsync()
+    {
+        patient = patientContainer.Value;
+        await base.OnInitializedAsync();
+    }
+
+    private async Task UpdatePatient()
+    {
+        await patientManager.UpdateAsync(patient);
+        NavigationManager.NavigateTo("/patients");
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/patients");
+    }
+}

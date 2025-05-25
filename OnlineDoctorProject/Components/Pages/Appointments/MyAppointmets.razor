@@ -1,0 +1,180 @@
+﻿@page "/my-appointments"
+@using System.Security.Claims
+@using BusinessLayer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using OnlineDoctorProject.DataLayer
+@inject UserManager<User> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject MedicalDbContext DbContext
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="appointments-container">
+    <section class="appointments-section">
+        <div class="text-center">
+            <span class="badge">Прегледи</span>
+            <h2 class="section-heading">Моите прегледи</h2>
+        </div>
+
+        @if (appointments == null)
+        {
+            <div class="loading-wrapper">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (!appointments.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="styled-alert">Нямате записани прегледи.</MudAlert>
+        }
+        else
+        {
+            <div class="appointments-table-wrapper">
+                <MudTable T="Appointment" Items="@appointments" Elevation="1" Class="appointments-table">
+                    <HeaderContent>
+                        <MudTh>Дата</MudTh>
+                        <MudTh>Описание</MudTh>
+                        <MudTh>Доктор</MudTh>
+                        <MudTh>Тип</MudTh>
+                        <MudTh>Онлайн линк</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="appointment">
+                        <MudTd>@appointment.Date.ToString("dd.MM.yyyy")</MudTd>
+                        <MudTd>@appointment.Description</MudTd>
+                        <MudTd>
+                            @{
+                                string doctorName = !string.IsNullOrEmpty(appointment.DoctorId) && doctorLookup.TryGetValue(appointment.DoctorId, out var doc)
+                                ? $"{doc.FirstName} {doc.LastName}"
+                                : "—";
+                            }
+                            @doctorName
+                        </MudTd>
+                        <MudTd>@appointment.Reason</MudTd>
+                        <MudTd>
+                            @if (appointment.Reason == AppointmentReason.Онлайн_Среща && !string.IsNullOrEmpty(appointment.GoogleMeetLink))
+                            {
+                                <MudLink Href="@appointment.GoogleMeetLink" Target="_blank" Class="link-button">Линк</MudLink>
+                            }
+                            else
+                            {
+                                <i>&mdash;</i>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        }
+    </section>
+</MudContainer>
+
+<style>
+    .appointments-container {
+        padding-top: 80px;
+        padding-bottom: 80px;
+    }
+
+    .appointments-section {
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .text-center {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .section-heading {
+        font-size: 2rem;
+        color: #0f766e;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    .appointments-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .appointments-table {
+        width: 100%;
+        border-radius: 12px;
+        background-color: #f0fdfa;
+    }
+
+    .styled-alert {
+        margin-top: 20px;
+        border-radius: 12px;
+    }
+
+    .loading-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px;
+    }
+
+    .link-button {
+        color: #0f766e;
+        font-weight: 600;
+        text-decoration: underline;
+    }
+
+    @@media (max-width: 768px) {
+        .appointments-section {
+            padding: 20px;
+        }
+
+        .section-heading {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+@code {
+    private List<Appointment> appointments;
+    private Dictionary<string, User> doctorLookup = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userClaims = authState.User;
+
+        if (!userClaims.Identity?.IsAuthenticated ?? true)
+            return;
+
+        var userName = userClaims.Identity.Name;
+        if (string.IsNullOrEmpty(userName))
+            return;
+
+        var currentUser = await UserManager.FindByNameAsync(userName);
+        if (currentUser == null)
+            return;
+
+        appointments = await DbContext.Appointments
+            .Where(a => a.PatientId == currentUser.Id)
+            .ToListAsync();
+
+        var doctorIds = appointments
+            .Where(a => !string.IsNullOrEmpty(a.DoctorId))
+            .Select(a => a.DoctorId)
+            .Distinct()
+            .ToList();
+
+        var doctors = await DbContext.Users
+            .Where(u => doctorIds.Contains(u.Id))
+            .ToListAsync();
+
+        doctorLookup = doctors.ToDictionary(u => u.Id);
+    }
+}

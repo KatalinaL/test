@@ -1,0 +1,144 @@
+﻿@page "/aboutUs"
+
+<div class="container">
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="about-grid">
+            <div class="about-image">
+                <img src="images/OnlineDoctor.jpg" alt="Нашият екип">
+            </div>
+            <div class="about-text">
+                <span class="badge">За нас</span>
+                <h2>Посветени на висококачествената грижа</h2>
+                <p>Ние сме екип от професионалисти, посветени на висококачествената грижа за Вашето здраве и комфорт. Нашата мисия е да предоставяме съвременни медицински услуги чрез индивидуален подход, като съчетаваме опита на специалистите с модерната технология.</p>
+                <ul class="features">
+                    <li>✔️ Сертифицирани специалисти</li>
+                    <li>✔️ Връзка с лекари от разстояние</li>
+                    <li>✔️ Индивидуален подход към всеки пациент</li>
+                    <li>✔️ Комплексни медицински услуги</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="text-center">
+            <span class="badge">Контакти</span>
+            <h2>Свържете се с нас</h2>
+            <p>Ще се радваме да отговорим на вашите въпроси и да Ви помогнем.</p>
+        </div>
+
+        <div class="contact-grid">
+            <div class="contact-info">
+                <div class="info-block"><strong>Адрес:</strong> ул. „Здраве“ 12, 1000 София</div>
+                <div class="info-block"><strong>Телефон:</strong> +359 2 123 456</div>
+                <div class="info-block"><strong>Имейл:</strong> info@onlinedoctor.bg</div>
+                <div class="info-block"><strong>Работно време:</strong><br />Пон – Пет: 8:00 – 19:00<br />Съб: 9:00 – 17:00<br />Нед: Почивен ден</div>
+            </div>
+            <div class="map-card">
+                <iframe class="map-iframe"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1156.8473339538862!2d23.321867315087853!3d42.6976412220329!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40aa85a2f790a5e5%3A0xb6d5c1bf80bce0d3!2sSofia%2C%20Bulgaria!5e0!3m2!1sen!2sus!4v1684339091486!5m2!1sen!2sus"
+                        style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+    .container {
+        max-width: 1100px;
+        margin: auto;
+        padding: 32px;
+    }
+
+    .text-center {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .about {
+        background: #f0fdfa;
+        padding: 60px 0;
+    }
+
+    .about-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        align-items: center;
+    }
+
+    .about-image img {
+        width: 100%;
+        border-radius: 12px;
+    }
+
+    .about-text h2 {
+        font-size: 2rem;
+        color: #0f766e;
+        margin-bottom: 16px;
+    }
+
+    .about-text p {
+        color: #333;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .features {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .features li {
+        margin-bottom: 10px;
+        font-weight: 500;
+    }
+
+    .contact {
+        padding: 60px 0;
+    }
+
+    .contact-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        align-items: start;
+    }
+
+    .contact-info .info-block {
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 1rem;
+    }
+
+    .map-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .map-iframe {
+        width: 100%;
+        height: 300px;
+        border: 0;
+    }
+
+    @@media (max-width: 768px) {
+        .about-grid, .contact-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

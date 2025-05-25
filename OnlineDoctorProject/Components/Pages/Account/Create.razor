@@ -1,0 +1,248 @@
+﻿@page "/appointments/create"
+@page "/appointments/create/{doctorId}/{patientId?}/{problemId?}"
+@using BusinessLayer
+@using OnlineDoctorProject.Components.Services
+@using OnlineDoctorProject.DataLayer
+@inject AppointmentContext appointmentManager
+@inject DoctorContext doctorService
+@inject ProblemReportContext ProblemService
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="appointment-create-container">
+    <MudPaper Class="appointment-create-paper">
+        <MudStack Spacing="4">
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="appointment-create-title">Създай преглед</MudText>
+
+            <MudForm Model="@Model" @ref="form">
+                @if (ShowDoctorDropdown)
+                {
+                    <MudSelect T="string"
+                               @bind-Value="Model.DoctorId"
+                               Label="Избери доктор"
+                               Required="true"
+                               RequiredError="Моля изберете доктор.">
+                        @foreach (var doc in AllDoctors)
+                        {
+                            <MudSelectItem T="string" Value="@doc.Id">@doc.FirstName @doc.LastName</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                <MudSelect T="AppointmentReason"
+                           Value="Model.Reason"
+                           ValueChanged="HandleReasonChanged"
+                           Label="Причина"
+                           Required="true"
+                           RequiredError="Моля изберете причина.">
+                    @foreach (AppointmentReason reason in Enum.GetValues(typeof(AppointmentReason)))
+                    {
+                        <MudSelectItem T="AppointmentReason" Value="@reason">@reason.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (!string.IsNullOrEmpty(GeneratedMeetLink))
+                {
+                    <MudTextField ReadOnly="true"
+                                  Label="Google Meet линк"
+                                  Value="@GeneratedMeetLink"
+                                  Variant="Variant.Outlined" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CopyToClipboard">
+                        Копирай линка
+                    </MudButton>
+                }
+
+                <MudTextField @bind-Value="Model.Description"
+                              Label="Описание"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Описание е задължително." />
+
+                <MudDatePicker @bind-Date="selectedDate"
+                               Label="Дата"
+                               DateFormat="dd.MM.yyyy"
+                               Required="true" />
+
+                @if (availableTimes?.Any() == true)
+                {
+                    <MudSelect T="TimeOnly?" @bind-Value="Model.StartTime" Label="Час" Required="true">
+                        @foreach (var time in availableTimes)
+                        {
+                            <MudSelectItem Value="@time">@time.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                <MudButton Variant="Variant.Filled" OnClick="CreateAppointment" Class="appointment-create-submit">
+                    Запиши
+                </MudButton>
+
+                @if (showSuccessAlert)
+                {
+                    <MudAlert Severity="Severity.Success">Записът е създаден успешно!</MudAlert>
+                }
+            </MudForm>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    /* ====== Appointment Create Page Style (Local to this Razor file) ====== */
+    .appointment-create-container {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    .appointment-create-paper {
+        padding: 2rem;
+        border-radius: 1.5rem;
+        background: linear-gradient(to right, #f3f4f6, #d1e1f1);
+        box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+        max-width: 900px;
+        width: 100%;
+    }
+
+    .appointment-create-title {
+        color: #4caf50;
+        font-weight: 600;
+    }
+
+    .appointment-create-submit {
+        background-color: #4caf50;
+        color: white;
+        border-radius: 0.5rem;
+    }
+
+        .appointment-create-submit:hover {
+            background-color: #388e3c;
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+
+    .mud-form {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .mud-select {
+        font-size: 1rem;
+        border-radius: 0.75rem;
+    }
+
+    .mud-textfield, .mud-datepicker {
+        border-radius: 0.75rem;
+    }
+
+    .mud-alert {
+        margin-top: 1rem;
+    }
+
+    .mud-button {
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+
+    .mud-select-item {
+        padding: 0.75rem;
+    }
+</style>
+
+@code {
+    [Parameter] public string? doctorId { get; set; }
+    [Parameter] public string? patientId { get; set; }
+    [Parameter] public string? problemId { get; set; }
+
+    Appointment Model = new();
+    DateTime? selectedDate = DateTime.Today;
+    bool showSuccessAlert = false;
+    string? GeneratedMeetLink;
+    List<Doctor> AllDoctors = new();
+    List<TimeOnly?>? availableTimes;
+
+    private MudForm? form;
+
+    bool ShowDoctorDropdown => string.IsNullOrEmpty(doctorId) || doctorId == "null";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ShowDoctorDropdown)
+        {
+            AllDoctors = await doctorService.GetDoctorsAsync();
+        }
+        else
+        {
+            Model.DoctorId = doctorId;
+        }
+
+        if (!string.IsNullOrEmpty(patientId))
+        {
+            Model.PatientId = patientId;
+        }
+    }
+
+    private async Task CreateAppointment()
+    {
+        if (form is not null)
+        {
+            await form.Validate();
+            if (!form.IsValid) return;
+        }
+
+        Model.Date = selectedDate ?? DateTime.Today;
+
+        if (Model.Reason == AppointmentReason.Онлайн_Среща)
+        {
+            GeneratedMeetLink = GenerateGoogleMeetLink();
+            Model.GoogleMeetLink = GeneratedMeetLink;
+        }
+        else
+        {
+            GeneratedMeetLink = null;
+            Model.GoogleMeetLink = null;
+        }
+
+        await appointmentManager.CreateAsync(Model);
+
+        if (!string.IsNullOrEmpty(problemId))
+        {
+            var problem = await ProblemService.GetProblemByIdAsync(problemId);
+            if (problem != null)
+            {
+                problem.DoctorId = Model.DoctorId;
+                await ProblemService.UpdateProblemAsync(problem);
+            }
+        }
+
+        showSuccessAlert = true;
+    }
+
+    private void HandleReasonChanged(AppointmentReason selectedReason)
+    {
+        Model.Reason = selectedReason;
+
+        if (selectedReason == AppointmentReason.Онлайн_Среща)
+        {
+            GeneratedMeetLink = GenerateGoogleMeetLink();
+            Model.GoogleMeetLink = GeneratedMeetLink;
+        }
+        else
+        {
+            GeneratedMeetLink = null;
+            Model.GoogleMeetLink = null;
+        }
+    }
+
+    private string GenerateGoogleMeetLink()
+    {
+        return $"https://meet.google.com/{Guid.NewGuid().ToString().Substring(0, 10)}";
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(GeneratedMeetLink))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", GeneratedMeetLink);
+        }
+    }
+}

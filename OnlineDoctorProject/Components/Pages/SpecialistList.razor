@@ -1,0 +1,149 @@
+﻿@page "/specialists/see"
+@using BusinessLayer
+@inject DoctorContext doctorManager;
+
+<div class="container">
+    <section class="specialists-section">
+        <div class="text-center">
+            <span class="badge">Специалисти</span>
+            <h2>Лекари, на които можете да се доверите</h2>
+            <p>Нашият екип от сертифицирани специалисти предлага грижа, базирана на опит и съвременни практики.</p>
+        </div>
+
+        <div class="doctors-grid">
+            @if (DoctorsWithRatings == null)
+            {
+                <p>Зареждане на информация за лекарите...</p>
+            }
+            else
+            {
+                @foreach (var (doctor, avgRating) in DoctorsWithRatings)
+                {
+                    <div class="doctor-card">
+                        @* <img src="images/default-doctor.jpg" alt="Доктор @doctor.FirstName @doctor.LastName" /> *@
+                        <h3>@doctor.FirstName @doctor.SecondName @doctor.LastName</h3>
+                        <p class="specialty">@FormatSpecialty(doctor.DoctorSpecialty)</p>
+                        <p class="rating">
+                            Оценка: @(avgRating.HasValue ? $"{avgRating.Value:0.00}/5 " : "Няма оценки")
+                            @if (avgRating.HasValue)
+                            {
+                                <span class="star">★</span>
+                            }
+                        </p>
+                    </div>
+                }
+            }
+        </div>
+    </section>
+</div>
+
+<style>
+    .container {
+        max-width: 1100px;
+        margin: auto;
+        padding: 32px;
+    }
+
+    .text-center {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .specialists-section {
+        background: #f0fdfa;
+        padding: 60px 0;
+    }
+
+    .doctors-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 32px;
+    }
+
+    .doctor-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+
+    .doctor-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .doctor-card img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+
+    .doctor-card h3 {
+        color: #0f766e;
+        margin-bottom: 8px;
+    }
+
+    .specialty {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 6px;
+    }
+
+    .rating {
+        font-size: 0.95rem;
+        color: #666;
+    }
+
+    .star {
+        color: gold;
+        font-size: 1.2rem;
+        margin-left: 4px;
+    }
+
+    @@media (max-width: 768px) {
+        .doctors-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    private List<(Doctor doctor, double? avgRating)> DoctorsWithRatings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var doctors = await doctorManager.ReadAllAsync();
+        var ratings = await doctorManager.GetAllRatingsAsync();
+
+        DoctorsWithRatings = doctors
+            .GroupJoin(
+                ratings,
+                doc => doc.Id,
+                rate => rate.DoctorId,
+                (doc, doctorRatings) => (
+                    doctor: doc,
+                    avgRating: doctorRatings.Any() ? doctorRatings.Average(r => r.Stars) : (double?)null
+                )
+            )
+            .ToList();
+    }
+
+    private string FormatSpecialty(Specialty specialty)
+    {
+        return specialty.ToString().Replace("_", " ");
+    }
+}

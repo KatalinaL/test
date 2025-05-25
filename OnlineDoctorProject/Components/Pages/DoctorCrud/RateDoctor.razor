@@ -1,0 +1,249 @@
+﻿@page "/rate"
+@using BusinessLayer
+@using OnlineDoctorProject.DataLayer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using MudBlazor
+@inject NavigationManager Navigation
+@inject DoctorContext doctorService
+@inject DoctorRateContext RatingService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<User> UserManager
+@inject DoctorContext Db
+
+@attribute [Authorize(Roles = "Patient")]
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="container">
+    <section class="rating-section">
+        <MudPaper Class="pa-4 rating-paper">
+            <div class="text-center">
+                <span class="badge">Оценки</span>
+                <h3 class="rating-heading">Дай оценка на специалист</h3>
+            </div>
+
+            <!-- Падащ списък за избор на специалист -->
+            <MudSelect T="Doctor"
+                       Label="Избери специалист"
+                       @bind-Value="SelectedDoctor"
+                       ToStringFunc="GetDoctorDisplayName"
+                       Variant="Variant.Outlined"
+                       Class="mt-4"
+                       FullWidth="true">
+
+                @if (Doctors != null)
+                {
+                    @foreach (var doctor in Doctors)
+                    {
+                        <MudSelectItem T="Doctor" Value="@doctor">
+                            @doctor.FirstName @doctor.LastName (@FormatSpecialty(doctor.DoctorSpecialty))
+                        </MudSelectItem>
+                    }
+                }
+            </MudSelect>
+
+            @if (SelectedDoctor != null)
+            {
+                <div class="doctor-info mt-4">
+                    <MudText Typo="Typo.h6" Class="doctor-name">
+                        @SelectedDoctor.FirstName @SelectedDoctor.LastName
+                    </MudText>
+                    <MudText Class="doctor-specialty">@FormatSpecialty(SelectedDoctor.DoctorSpecialty)</MudText>
+                </div>
+
+                <div class="rating-component mt-4">
+                    <MudText Class="rating-label">Вашата оценка:</MudText>
+                    <MudRating Value="@RatingValue"
+                               MaxValue="5"
+                               Size="Size.Large"
+                               SelectedValueChanged="OnRatingChanged"
+                               Color="Color.Warning" />
+                    <MudText Class="current-rating">Текуща оценка: @RatingValue</MudText>
+                </div>
+
+                <MudTextField @bind-Value="Comment"
+                              Label="Коментар (по избор)"
+                              Variant="Variant.Outlined"
+                              Class="mt-4"
+                              Lines="3"
+                              FullWidth="true" />
+
+                <div class="text-center mt-4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SubmitRating"
+                               EndIcon="@Icons.Material.Filled.Star">
+                        Запази оценката
+                    </MudButton>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">@Message</MudAlert>
+            }
+        </MudPaper>
+    </section>
+</MudContainer>
+
+<style>
+    .container {
+        padding: 0;
+    }
+
+    .rating-section {
+        padding: 60px 0;
+        background-color: #f0fdfa;
+    }
+
+    .rating-paper {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 40px !important;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .rating-heading {
+        font-size: 2rem;
+        color: #0f766e;
+        margin-bottom: 24px;
+        font-weight: 700;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .doctor-info {
+        background-color: #f8fafc;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+    }
+
+    .doctor-name {
+        color: #0f766e;
+        font-weight: 600;
+    }
+
+    .doctor-specialty {
+        color: #555;
+    }
+
+    .rating-component {
+        text-align: center;
+    }
+
+    .rating-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .current-rating {
+        display: block;
+        margin-top: 8px;
+        color: #0f766e;
+        font-weight: 500;
+    }
+
+    @@media (max-width: 768px) {
+        .rating-section {
+            padding: 40px 0;
+        }
+
+        .rating-paper {
+            padding: 24px !important;
+        }
+
+        .rating-heading {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+@code {
+    private List<Doctor> Doctors { get; set; } = new();
+    private Doctor SelectedDoctor { get; set; }
+    private int RatingValue { get; set; } = 0;
+    private string Comment { get; set; }
+    private string Message { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Doctors = await doctorService.GetDoctorsAsync();
+    }
+
+    private void OnRatingChanged(int newValue)
+    {
+        RatingValue = newValue;
+        Console.WriteLine($"Нова оценка: {RatingValue}");
+    }
+
+    private string GetDoctorDisplayName(Doctor doc)
+    {
+        return doc == null ? string.Empty : $"{doc.FirstName} {doc.LastName} ({FormatSpecialty(doc.DoctorSpecialty)})";
+    }
+
+    private string FormatSpecialty(Specialty specialty)
+    {
+        return specialty.ToString().Replace("_", " ");
+    }
+
+    private async Task SubmitRating()
+    {
+        if (SelectedDoctor == null)
+        {
+            Message = "Моля, изберете специалист.";
+            return;
+        }
+
+        if (RatingValue < 1 || RatingValue > 5)
+        {
+            Message = "Моля, избери оценка между 1 и 5 звезди.";
+            return;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var patientId = "";
+
+        if (user.Identity.IsAuthenticated)
+        {
+            var username = user.Identity.Name;
+            var currentUser = await UserManager.FindByNameAsync(username);
+            patientId = currentUser?.Id;
+        }
+
+        var rating = new DoctorRating
+            {
+                Id = Guid.NewGuid().ToString(),
+                DoctorId = SelectedDoctor.Id,
+                PatientId = patientId,
+                Stars = RatingValue,
+                Comment = Comment,
+                RatedAt = DateTime.UtcNow
+            };
+
+        bool success = await RatingService.AddRatingAsync(rating);
+        Message = success ? "Оценката е записана успешно!" : "Възникна грешка при записване на оценката.";
+
+        if (success)
+        {
+            // Reset form after successful submission
+            RatingValue = 0;
+            Comment = string.Empty;
+        }
+    }
+}

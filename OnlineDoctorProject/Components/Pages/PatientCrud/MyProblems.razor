@@ -1,0 +1,180 @@
+﻿@page "/problems/my"
+@using BusinessLayer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using MudBlazor
+@using System.Security.Claims
+@inject NavigationManager Navigation
+@inject ProblemReportContext ProblemService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<User> UserManager
+
+@attribute [Authorize(Roles = "Patient")]
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="container">
+
+    <!-- Page Header -->
+    <section class="section-header text-center">
+        <span class="badge">Проблеми</span>
+        <h1 class="section-heading">Моите регистрирани проблеми</h1>
+        <p class="section-subtitle">Проследявайте историята на вашите здравословни затруднения</p>
+    </section>
+
+    <!-- Table / State -->
+    <section class="section-table">
+        @if (problems == null)
+        {
+            <p class="loading-message">Зареждане...</p>
+        }
+        else if (!problems.Any())
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mt-4">
+                Нямате регистрирани проблеми.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="problems" Hover="true" Bordered="true" Elevation="2" Class="problems-table">
+                <HeaderContent>
+                    <MudTh>Описание</MudTh>
+                    <MudTh>Дата</MudTh>
+                    <MudTh>Лекар</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Message</MudTd>
+                    <MudTd>@context.DateReported.ToString("dd.MM.yyyy HH:mm")</MudTd>
+                    <MudTd>
+                        @{
+                            string doctorName = "Лекар не е избран";
+                            if (!string.IsNullOrEmpty(context.DoctorId) && doctorCache.ContainsKey(context.DoctorId))
+                            {
+                                var doctor = doctorCache[context.DoctorId];
+                                doctorName = $"{doctor.FirstName} {doctor.LastName}";
+                            }
+                        }
+                        <span>@doctorName</span>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </section>
+
+</MudContainer>
+
+<style>
+    .container {
+        padding: 40px 20px;
+    }
+
+    section {
+        margin-bottom: 50px;
+    }
+
+    .section-header {
+        background-color: #fefce8;
+        padding: 60px 20px;
+        border-radius: 12px;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #fef08a;
+        color: #92400e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .section-heading {
+        font-size: 2.3rem;
+        color: #78350f;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: #6b7280;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .problems-table {
+        border-radius: 12px;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+        text-align: center;
+        padding: 12px;
+        font-size: 0.95rem;
+        color: #333;
+    }
+
+    th {
+        background-color: #fef3c7;
+        color: #92400e;
+        font-weight: bold;
+    }
+
+    .loading-message {
+        text-align: center;
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    @@media (max-width: 768px) {
+        .section-heading {
+            font-size: 1.8rem;
+        }
+
+        .section-subtitle {
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            font-size: 0.85rem;
+        }
+    }
+</style>
+
+@code {
+    private List<BusinessLayer.ReportProblem> problems { get; set; }
+    private Dictionary<string, User> doctorCache = new(); // Кеш на лекарите
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userName = user.Identity?.Name;
+
+        if (string.IsNullOrEmpty(userName))
+            return;
+
+        var currentUser = await UserManager.FindByNameAsync(userName);
+        if (currentUser == null)
+            return;
+
+        // Зареждане на проблемите
+        problems = await ProblemService.GetProblemsForPatientAsync(currentUser.Id);
+
+        // Извличане на уникалните DoctorId-та
+        var doctorIds = problems
+            .Where(p => !string.IsNullOrEmpty(p.DoctorId))
+            .Select(p => p.DoctorId)
+            .Distinct();
+
+        // Зареждане на потребителите (лекарите)
+        foreach (var docId in doctorIds)
+        {
+            var doctor = await UserManager.FindByIdAsync(docId);
+            if (doctor != null)
+            {
+                doctorCache[docId] = doctor;
+            }
+        }
+    }
+}

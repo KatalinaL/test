@@ -1,0 +1,143 @@
+﻿@page "/doctors/ranking"
+@using BusinessLayer
+@using Microsoft.EntityFrameworkCore
+@inject DoctorRateContext RatingService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="container">
+    <section class="ranking-section">
+        <MudPaper Class="pa-4 ranking-paper">
+            <div class="text-center">
+                <span class="badge">Специалисти</span>
+                <h3 class="ranking-heading">Класация на специалисти</h3>
+            </div>
+
+            @if (RankedDoctors == null)
+            {
+                <div class="text-center mt-4">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </div>
+            }
+            else if (!RankedDoctors.Any())
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-4">Няма налични оценки.</MudAlert>
+            }
+            else
+            {
+                <MudTable Items="RankedDoctors" Hover="true" Striped="true" Class="mt-4 ranking-table">
+                    <HeaderContent>
+                        <MudTh Class="ranking-header">Специалист</MudTh>
+                        <MudTh Class="ranking-header">Специалност</MudTh>
+                        <MudTh Class="ranking-header">Средна оценка</MudTh>
+                        <MudTh Class="ranking-header">Брой оценки</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd Class="ranking-cell">@context.DoctorName</MudTd>
+                        <MudTd Class="ranking-cell">@FormatSpecialty(context.DoctorSpecialty)</MudTd>
+                        <MudTd Class="ranking-cell">
+                            <div class="d-flex align-items-center">
+                                @context.AverageStars.ToString("F1")
+                                <MudIcon Icon="@Icons.Material.Filled.Star"
+                                         Color="Color.Warning"
+                                         Style="margin-bottom: 6px"
+                                         Class="ml-1" />
+                            </div>
+                        </MudTd>
+                        <MudTd Class="ranking-cell">@context.RatingCount</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    </section>
+</MudContainer>
+
+<style>
+    .container {
+        padding: 0;
+    }
+
+    .ranking-section {
+        padding: 60px 0;
+        background-color: #f0fdfa;
+    }
+
+    .ranking-paper {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 40px !important;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .ranking-heading {
+        font-size: 2rem;
+        color: #0f766e;
+        margin-bottom: 24px;
+        font-weight: 700;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .ranking-table {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .ranking-header {
+        font-weight: 600;
+        color: #0f766e !important;
+        background-color: #f0fdfa !important;
+    }
+
+    .ranking-cell {
+        color: #333;
+    }
+
+    @@media (max-width: 768px) {
+        .ranking-section {
+            padding: 40px 0;
+        }
+
+        .ranking-paper {
+            padding: 24px !important;
+        }
+
+        .ranking-heading {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+@code {
+    // Define a view model for ranking data
+    public class DoctorRankingViewModel
+    {
+        public string DoctorName { get; set; }
+        public double AverageStars { get; set; }
+        public int RatingCount { get; set; }
+        public Specialty DoctorSpecialty { get; set; }
+    }
+
+    private List<DoctorRankingViewModel> RankedDoctors { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        RankedDoctors = await RatingService.GetDoctorRankingAsync();
+    }
+
+    private string FormatSpecialty(Specialty specialty)
+    {
+        return specialty.ToString().Replace("_", " ");
+    }
+}

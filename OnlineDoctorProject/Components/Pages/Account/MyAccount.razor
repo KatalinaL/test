@@ -1,0 +1,118 @@
+﻿@page "/my-profile"
+@using System.Security.Claims
+@using BusinessLayer
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<User> userManager
+@inject AuthenticationStateProvider authProvider
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="container">
+    <section class="profile-section">
+        <div class="text-center mb-10">
+            <span class="badge">Профил</span>
+            <h2 class="section-heading">Моят профил</h2>
+        </div>
+
+        <MudPaper Elevation="2" Class="profile-card">
+            @if (currentUser == null)
+            {
+                <MudAlert Severity="Severity.Warning">Грешка при зареждане на потребителските данни.</MudAlert>
+            }
+            else
+            {
+                <div class="form-grid">
+                    <MudTextField Label="Име" Value="@currentUser.FirstName" ReadOnly="true" />
+                    <MudTextField Label="Презиме" Value="@currentUser.SecondName" ReadOnly="true" />
+                    <MudTextField Label="Фамилия" Value="@currentUser.LastName" ReadOnly="true" />
+                    <MudTextField Label="Потребителско име" Value="@currentUser.UserName" ReadOnly="true" />
+                    <MudTextField Label="Имейл" Value="@currentUser.Email" ReadOnly="true" />
+                    <MudTextField Label="Телефон" Value="@currentUser.PhoneNumber" ReadOnly="true" />
+                    <MudTextField Label="Роля" Value="@GetDisplayName(currentUser.Role)" ReadOnly="true" />
+
+                    @if (currentUser.Role == Role.Doctor)
+                    {
+                        <MudTextField Label="Специалност" Value="@currentUser.DoctorSpecialty.ToString().Replace("_", " ")" ReadOnly="true" />
+                    }
+
+                    <MudTextField Label="Рождена дата" Value="@currentUser.Birthdate.ToString("dd.MM.yyyy")" ReadOnly="true" />
+                </div>
+            }
+        </MudPaper>
+    </section>
+</MudContainer>
+
+<style>
+    .container {
+        padding: 40px 20px;
+    }
+
+    .profile-section {
+        background-color: #f0fdfa;
+        padding: 60px 30px;
+        border-radius: 16px;
+    }
+
+    .section-heading {
+        font-size: 2rem;
+        color: #0f766e;
+        margin-top: 12px;
+        font-weight: 700;
+    }
+
+    .badge {
+        display: inline-block;
+        background-color: #ccfbf1;
+        color: #0f766e;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .profile-card {
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+    }
+
+    @@media (max-width: 768px) {
+        .section-heading {
+            font-size: 1.5rem;
+        }
+
+        .profile-section {
+            padding: 40px 20px;
+        }
+    }
+</style>
+
+@code {
+    private User? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            var userName = user.Identity.Name;
+            currentUser = await userManager.FindByNameAsync(userName);
+        }
+    }
+
+    private string GetDisplayName(Role role)
+    {
+        var field = role.GetType().GetField(role.ToString());
+        var attribute = field?.GetCustomAttributes(typeof(DisplayAttribute), false)
+                              .FirstOrDefault() as DisplayAttribute;
+        return attribute?.Name ?? role.ToString();
+    }
+}
