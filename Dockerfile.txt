@@ -1,11 +1,12 @@
-# Билд етап
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet publish ./vikiDiplomen/vikiDiplomen.csproj -c Release -o /app/out
+RUN dotnet restore ./OnlineDoctorProject/OnlineDoctorProject.csproj
+RUN dotnet publish ./OnlineDoctorProject/OnlineDoctorProject.csproj -c Release -o /app/out
 
-# Runtime етап
+# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/out .
-ENTRYPOINT ["dotnet", "vikiDiplomen.dll"]
+ENTRYPOINT ["dotnet", "OnlineDoctorProject.dll"]
